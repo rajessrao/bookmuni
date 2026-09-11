@@ -1,0 +1,2 @@
+-- Milestone 1 has no shared records to seed.
+-- The Page Turner Troopers community is introduced with the communities migration.

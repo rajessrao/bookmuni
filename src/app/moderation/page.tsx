@@ -1,0 +1,17 @@
+import { redirect } from "next/navigation";
+import { AppNav } from "@/components/app-nav";
+import { createSupabaseServerClient } from "@/lib/supabase/server";
+import { createReportAction } from "./actions";
+
+export default async function ModerationPage({ searchParams }: { searchParams: Promise<{ error?: string; saved?: string }> }) {
+  const supabase = await createSupabaseServerClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user || user.is_anonymous) redirect("/auth");
+  const [{ data: reports }, { data: blocks }] = await Promise.all([
+    supabase.from("reports").select("id, target_type, reason, status, details, created_at").eq("reporter_id", user.id).order("created_at", { ascending: false }),
+    supabase.from("blocked_users").select("blocked_id, created_at").eq("blocker_id", user.id),
+  ]);
+  const { error, saved } = await searchParams;
+
+  return <main className="min-h-screen px-6 py-8 sm:px-10 lg:px-16"><div className="mx-auto max-w-5xl"><AppNav active="profile" /><div className="mt-14"><p className="text-sm font-bold uppercase tracking-[0.18em] text-[var(--apricot)]">Trust and safety</p><h1 className="mt-4 font-display text-5xl leading-tight">Reports and blocks.</h1><p className="mt-5 text-lg leading-8 text-[var(--ink-muted)]">Your reports are private from other members. Community admins can review reports for their communities.</p>{(error || saved) && <p role="status" className="mt-6 rounded-xl bg-[var(--leaf)]/70 p-4 text-sm">{error ?? "Saved."}</p>}<form action={createReportAction} className="mt-10 max-w-2xl rounded-2xl bg-[var(--paper)] p-6"><h2 className="font-display text-2xl">Report something</h2><input type="hidden" name="communityId" value="" /><label className="mt-5 block text-sm font-semibold" htmlFor="targetType">Report type</label><select id="targetType" name="targetType" className="mt-2 w-full rounded-xl border bg-white px-4 py-3"><option value="member">Member</option><option value="listing">Book listing</option><option value="transaction">Transaction</option></select><label className="mt-4 block text-sm font-semibold" htmlFor="reason">Reason</label><input id="reason" name="reason" required placeholder="What happened?" className="mt-2 w-full rounded-xl border bg-white px-4 py-3" /><label className="mt-4 block text-sm font-semibold" htmlFor="details">Details</label><textarea id="details" name="details" rows={4} className="mt-2 w-full rounded-xl border bg-white px-4 py-3" /><p className="mt-3 text-xs text-[var(--ink-muted)]">Reports must be submitted from a community or transaction context so admins can review them.</p><button disabled className="mt-5 rounded-xl bg-[var(--forest)] px-5 py-3 font-bold text-white opacity-50">Report from a context</button></form><section className="mt-10"><h2 className="font-display text-2xl">Your submitted reports</h2><div className="mt-4 space-y-3">{reports?.length ? reports.map((report) => <div key={report.id} className="rounded-xl border bg-[var(--paper)] p-4"><div className="flex justify-between gap-3"><strong>{report.target_type}</strong><span className="text-xs uppercase text-[var(--forest)]">{report.status}</span></div><p className="mt-2 text-sm text-[var(--ink-muted)]">{report.reason}</p></div>) : <p className="mt-3 text-sm text-[var(--ink-muted)]">No reports submitted.</p>}</div></section><section className="mt-10"><h2 className="font-display text-2xl">Blocked members</h2><p className="mt-3 text-sm text-[var(--ink-muted)]">{blocks?.length ?? 0} member(s) blocked.</p></section></div></div></main>;
+}

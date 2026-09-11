@@ -1,0 +1,5 @@
+import { createRatingAction } from "./actions";
+
+export function RatingForm({ loanId, toUserId }: { loanId: string; toUserId: string }) {
+  return <form action={createRatingAction} className="mt-8 rounded-xl bg-[var(--leaf)]/60 p-4"><input type="hidden" name="loanId" value={loanId} /><input type="hidden" name="toUserId" value={toUserId} /><h3 className="font-semibold">Private transaction rating</h3><div className="mt-3 flex flex-wrap gap-3"><label className="text-sm"><input type="radio" name="rating" value="positive" defaultChecked className="mr-2" />Positive</label><label className="text-sm"><input type="radio" name="rating" value="neutral" className="mr-2" />Neutral</label><label className="text-sm"><input type="radio" name="rating" value="negative" className="mr-2" />Negative</label></div><textarea name="feedback" rows={3} placeholder="Optional private feedback" className="mt-3 w-full rounded-xl border bg-white px-3 py-2 text-sm" /><button className="mt-3 rounded-lg bg-[var(--forest)] px-4 py-2 text-sm font-bold text-white">Submit rating</button></form>;
+}

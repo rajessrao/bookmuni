@@ -1,0 +1,17 @@
+import Link from "next/link";
+import { redirect } from "next/navigation";
+import { AppNav } from "@/components/app-nav";
+import { createSupabaseServerClient } from "@/lib/supabase/server";
+
+type Copy = { id: string; title: string; author: string; condition: string; language: string; genre: string; visibility: string; availability: string; editions: { isbn: string | null; cover_image_path: string | null } | null };
+
+export default async function LibraryPage({ searchParams }: { searchParams: Promise<{ created?: string; error?: string }> }) {
+  const supabase = await createSupabaseServerClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user || user.is_anonymous) redirect("/auth");
+  const { data, error } = await supabase.from("physical_copies").select("id, title, author, condition, language, genre, visibility, availability").eq("owner_id", user.id).order("created_at", { ascending: false });
+  const copies = (data ?? []) as unknown as Copy[];
+  const { created, error: queryError } = await searchParams;
+
+  return <main className="min-h-screen px-6 py-8 sm:px-10 lg:px-16"><div className="mx-auto max-w-5xl"><AppNav active="library" /><div className="mt-16 flex flex-wrap items-end justify-between gap-5"><div><p className="text-sm font-bold uppercase tracking-[0.18em] text-[var(--apricot)]">Your shelf</p><h1 className="mt-4 font-display text-5xl leading-tight">Books you own.</h1><p className="mt-5 text-lg leading-8 text-[var(--ink-muted)]">Keep track of your physical copies and decide which communities can borrow them.</p></div><Link href="/library/new" className="rounded-xl bg-[var(--forest)] px-5 py-3 font-bold text-white">Add a book</Link></div>{created && <p role="status" className="mt-8 rounded-xl bg-[var(--leaf)]/70 px-4 py-3 text-sm">Book saved. Availability and visibility are shown on its card below.</p>}{queryError && <p role="alert" className="mt-8 rounded-xl bg-[#f7d7c2] px-4 py-3 text-sm">{queryError}</p>}{error && <p role="alert" className="mt-8 rounded-xl bg-[#f7d7c2] px-4 py-3 text-sm">Could not load your library: {error.message}</p>}<div className="mt-12 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">{copies.length === 0 && !error && <div className="rounded-2xl border border-dashed p-6 text-[var(--ink-muted)] sm:col-span-2 lg:col-span-3">Your shelf is empty. Add your first book to get started.</div>}{copies.map((copy) => <article key={copy.id} className="rounded-2xl border bg-[var(--paper)] p-5"><p className="text-xs font-bold uppercase tracking-wider text-[var(--apricot)]">{copy.availability}</p><h2 className="mt-3 font-display text-2xl leading-tight">{copy.title}</h2><p className="mt-2 text-sm text-[var(--ink-muted)]">{copy.author}</p><div className="mt-6 flex flex-wrap gap-2 text-xs"><span className="rounded-full bg-[var(--leaf)] px-3 py-1">{copy.condition}</span><span className="rounded-full border px-3 py-1">{copy.genre}</span><span className="rounded-full border px-3 py-1">{copy.visibility}</span></div><Link href={`/library/${copy.id}/edit`} className="mt-6 inline-block text-sm font-bold text-[var(--forest)] underline decoration-[var(--apricot)] underline-offset-4">Edit book</Link></article>)}</div></div></main>;
+}
